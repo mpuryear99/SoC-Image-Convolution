@@ -42,7 +42,7 @@ module io_rx_controller
         col_idx <= col_idx + 1;
       end else begin
         busy    <= row_idx < nrows;
-        row_idx <= row_idx < nrows ? (row_idx + 1) ? '0;
+        row_idx <= row_idx < nrows ? (row_idx + 1) : '0;
         col_idx <= '0;
       end
     end else begin
