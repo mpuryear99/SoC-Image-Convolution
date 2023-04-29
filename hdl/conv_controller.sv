@@ -37,7 +37,7 @@ module conv_row_controller
     .dout(conv_buff)
   );
 
-  gauss_kernel_dotprot gkdp
+  gauss_kernel_dotprod gkdp
   (
     .sigma(sigma),
     .din(conv_buff),
