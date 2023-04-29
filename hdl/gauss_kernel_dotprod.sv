@@ -27,7 +27,7 @@ module gauss_kernel_dotprod
   end
 
   always_comb begin
-    dp_sim = 0;
+    dp_sum = 0;
     if (sigma == 0)
       dout = din[5];
     else begin
