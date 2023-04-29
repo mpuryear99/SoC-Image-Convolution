@@ -6,8 +6,8 @@ module shift_reg2
 (
   input  logic clk,
   input  logic rstn,
-  input  logic en,
-  input  logic center,
+  input  logic up_en,
+  input  logic down_en,
   input  logic [B-1:0] din,
   output logic [B-1:0] dout [N-1:0]
 );
@@ -18,7 +18,7 @@ module shift_reg2
     if (!rstn)
       dout <= '{default: B'0};
     else if (up_en && down_en) begin
-      // shift inward to center from both directions 
+      // shift inward to center from both directions
       dout[0]   <= din;
       dout[N-1] <= din;
       dout[N2-1:1] <= dout[N2-2:0];

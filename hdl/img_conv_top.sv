@@ -1,6 +1,13 @@
+// Top module of SoC
 
 import img_conv_pkg::*;
 
+
+// Interface modports cannot be multiplexed directly.
+// To solve this issue, each controller gets their own interface
+// initialized with the same clk as the SRAM interface.
+// This macro can then be used to connect all the ports of a
+// controller interface (slv) to the SRAM interface (mst).
 `define CONNECT_SRAM_INTFS(SRAM_MST, SRAM_SLV) \
   begin \
     SRAM_MST.din      = SRAM_SLV.din; \
@@ -24,26 +31,6 @@ module img_conv_top
 
   output logic busy
 );
-
-  // Interface modports cannot be multiplexed directly.
-  // To solve this issue, each controller gets their own interface
-  // initialized with the same clk as the SRAM interface.
-  // This can then be used to connect all the ports of a
-  // controller interface (slv) to the SRAM interface (mst).
-  // NOTE: If this doesn't work, use a macro.
-  // task connect_sram_intfs
-  // (
-  //   img_sram_intf.mst  sram_mst,  // The SRAM
-  //   img_sram_intf.slv  sram_slv   // The Controller
-  // );
-  //   sram_mst.din      = sram_slv.din;
-  //   sram_mst.row      = sram_slv.row;
-  //   sram_mst.col      = sram_slv.col;
-  //   sram_mst.write_en = sram_slv.write_en;
-  //   sram_mst.sense_en = sram_slv.sense_en;
-  //   sram_slv.dout     = sram_mst.dout;
-  // endtask
-
 
   // Global Registers
   logic [7:0] nrows;
