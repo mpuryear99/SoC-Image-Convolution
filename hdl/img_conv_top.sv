@@ -1,8 +1,15 @@
 
 import img_conv_pkg::*;
 
-
-
+`define CONNECT_SRAM_INTFS(SRAM_MST, SRAM_SLV) \
+  begin \
+    SRAM_MST.din      = SRAM_SLV.din; \
+    SRAM_MST.row      = SRAM_SLV.row; \
+    SRAM_MST.col      = SRAM_SLV.col; \
+    SRAM_MST.write_en = SRAM_SLV.write_en; \
+    SRAM_MST.sense_en = SRAM_SLV.sense_en; \
+    SRAM_SLV.dout     = SRAM_MST.dout; \
+  end
 
 
 module img_conv_top
@@ -24,18 +31,18 @@ module img_conv_top
   // This can then be used to connect all the ports of a
   // controller interface (slv) to the SRAM interface (mst).
   // NOTE: If this doesn't work, use a macro.
-  task connect_sram_intfs
-  (
-    img_sram_intf.mst  sram_mst,  // The SRAM
-    img_sram_intf.slv  sram_slv   // The Controller
-  );
-    sram_mst.din      = sram_slv.din;
-    sram_mst.row      = sram_slv.row;
-    sram_mst.col      = sram_slv.col;
-    sram_mst.write_en = sram_slv.write_en;
-    sram_mst.sense_en = sram_slv.sense_en;
-    sram_slv.dout     = sram_mst.dout;
-  endtask
+  // task connect_sram_intfs
+  // (
+  //   img_sram_intf.mst  sram_mst,  // The SRAM
+  //   img_sram_intf.slv  sram_slv   // The Controller
+  // );
+  //   sram_mst.din      = sram_slv.din;
+  //   sram_mst.row      = sram_slv.row;
+  //   sram_mst.col      = sram_slv.col;
+  //   sram_mst.write_en = sram_slv.write_en;
+  //   sram_mst.sense_en = sram_slv.sense_en;
+  //   sram_slv.dout     = sram_mst.dout;
+  // endtask
 
 
   // Global Registers
@@ -119,24 +126,24 @@ module img_conv_top
   always_comb begin
     // sram_img
     unique case (currOp)
-      OP_IMG_RX: connect_sram_intfs(sram_img_intf.mst, io_rx_sram_img_intf.slv);
-      OP_IMG_TX: connect_sram_intfs(sram_img_intf.mst, io_tx_sram_img_intf.slv);
+      OP_IMG_RX: `CONNECT_SRAM_INTFS(sram_img_intf.mst, io_rx_sram_img_intf.slv);
+      OP_IMG_TX: `CONNECT_SRAM_INTFS(sram_img_intf.mst, io_tx_sram_img_intf.slv);
       OP_CONV: begin
         if (conv_swap_sram)
-          connect_sram_intfs(sram_img_intf.mst, conv_sram_buf_intf.slv);
+          `CONNECT_SRAM_INTFS(sram_img_intf.mst, conv_sram_buf_intf.slv);
         else
-          connect_sram_intfs(sram_img_intf.mst, conv_sram_img_intf.slv);
+          `CONNECT_SRAM_INTFS(sram_img_intf.mst, conv_sram_img_intf.slv);
       end               
-      default:   connect_sram_intfs(sram_img_intf.mst, sram_hold_intf.slv);
+      default:   `CONNECT_SRAM_INTFS(sram_img_intf.mst, sram_hold_intf.slv);
     endcase
 
     // sram_buf
     if (currOp != OP_CONV)
-      connect_sram_intfs(sram_buf_intf.mst, sram_hold_intf.slv);
+      `CONNECT_SRAM_INTFS(sram_buf_intf.mst, sram_hold_intf.slv);
     else if (conv_swap_sram)
-      connect_sram_intfs(sram_buf_intf.mst, conv_sram_img_intf.slv);
+      `CONNECT_SRAM_INTFS(sram_buf_intf.mst, conv_sram_img_intf.slv);
     else
-      connect_sram_intfs(sram_buf_intf.mst, conv_sram_buf_intf.slv); 
+      `CONNECT_SRAM_INTFS(sram_buf_intf.mst, conv_sram_buf_intf.slv); 
   end
 
 
