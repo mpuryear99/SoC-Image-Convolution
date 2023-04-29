@@ -15,7 +15,7 @@ module img_conv_top
   input  logic [7:0] din,   //rx
   output logic [7:0] dout,  //tx
   
-  output logic busy,
+  output logic busy
 );
 
   // Interface modports cannot be multiplexed directly.
@@ -143,7 +143,7 @@ module img_conv_top
   // State machine control logic
   always_ff @(posedge clk, negedge rstn) begin
     if (!rstn) begin
-      currOp <= NOP;
+      currOp <= OP_NOP;
       busy  <= 1'b0;
       nrows <= 8'd8;
       ncols <= 8'd8;
@@ -163,7 +163,7 @@ module img_conv_top
         // start new op
         case (op)
           OP_GET_NROWS:  dout  <= nrows;
-          OP_GET_NCOLS:  dout  <= ncos;
+          OP_GET_NCOLS:  dout  <= ncols;
           OP_GET_SIGMA:  dout  <= sigma;   // may need to zero pad
           OP_SET_NROWS:  nrows <= din;
           OP_SET_NCOLS:  ncols <= din;
@@ -175,7 +175,7 @@ module img_conv_top
             io_rx_en <= '1;
           end    
           OP_IMG_TX: begin
-            currOp <= OP_IMG_TX
+            currOp <= OP_IMG_TX;
             io_tx_en <= '1;
             busy <= '1;
           end

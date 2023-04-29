@@ -11,7 +11,7 @@ package img_conv_pkg;
     OP_SET_SIGMA,
     OP_IMG_RX,
     OP_IMG_TX,
-    OP_CONV,
+    OP_CONV
   } opcode_t;
 
 endpackage
