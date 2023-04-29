@@ -15,7 +15,7 @@ module gauss_kernel_dotprod
   // kernel selector (all values are fractional)
   always_comb begin
     unique0 case (sigma)
-      3'b001:  kernel <= '{8'h00, 8'h00, 8'h00, 8'h00, 8'h1b, 8'hca, 8'h1b, 8'h00, 8'h00, 8'h00, 8'h00};  
+      3'b001:  kernel <= '{8'h00, 8'h00, 8'h00, 8'h00, 8'h1b, 8'hca, 8'h1b, 8'h00, 8'h00, 8'h00, 8'h00};
       3'b010:  kernel <= '{8'h00, 8'h00, 8'h01, 8'h0e, 8'h3e, 8'h66, 8'h3e, 8'h0e, 8'h01, 8'h00, 8'h00};
       3'b011:  kernel <= '{8'h00, 8'h02, 8'h09, 8'h1c, 8'h37, 8'h44, 8'h37, 8'h1c, 8'h09, 8'h02, 8'h00};
       3'b100:  kernel <= '{8'h03, 8'h07, 8'h11, 8'h1f, 8'h2d, 8'h33, 8'h2d, 8'h1f, 8'h11, 8'h07, 8'h03};
@@ -27,6 +27,7 @@ module gauss_kernel_dotprod
   end
 
   always_comb begin
+    dp_sim = 0;
     if (sigma == 0)
       dout = din[5];
     else begin
