@@ -26,7 +26,7 @@ module conv_row_controller
   logic [7:0] sr_din;
   logic sr_center_shift;
 
-  shift_reg2
+  shift_reg2 sreg
   #(.N(11), .B(8))
   (
     .clk(clk),
