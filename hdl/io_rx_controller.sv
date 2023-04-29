@@ -32,13 +32,13 @@ module io_rx_controller
 
   always_ff @(posedge clk, negedge rstn) begin
     if (!rstn) begin
-      busy <= 0;
-      row_idx <= 0;
-      col_idx <= 0;
+      busy  <= 1'b0;
+      row_idx <= '0;
+      col_idx <= '0;
     end
     else if ((en || busy) && (row_idx <= nrows)) begin
       if (col_idx < ncols) begin
-        busy <= 1;
+        busy <= 1'b1;
         col_idx <= col_idx + 1;
       end else begin
         busy    <= row_idx < nrows;
@@ -46,7 +46,7 @@ module io_rx_controller
         col_idx <= '0;
       end
     end else begin
-      busy <= 1'b0;
+      busy  <= 1'b0;
       row_idx <= '0;
       col_idx <= '0;
     end

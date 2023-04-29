@@ -31,28 +31,28 @@ module io_tx_controller
 
 
   always_ff @(posedge clk, negedge rstn) begin
-    if (!rstn || !(en || busy)) begin
-      busy <= 0;
-      row_idx <= 0;
-      col_idx <= 0;
+    if (!rstn) begin
+      busy  <= 1'b0;
+      row_idx <= '0;
+      col_idx <= '0;
     end
-    else if (en || busy) begin
-      // output starts one clock cycle after en
-      if (row_idx < nrows) begin
-        if (busy) begin
-          if (col_idx < ncols) begin
-            col_idx <= col_idx + 1;
-          end else begin
-            row_idx <= row_idx + 1;
-            col_idx <= 0;
-          end
-        end else busy <= 1;
-      end else begin
-        // TODO (MAYBE):  delay end by one cycle to ensure final output is written
-        busy <= 0;
-        row_idx <= 0;
-        col_idx <= 0;
-      end
+    else if ((en || busy) && (row_idx <= nrows)) begin
+      // output starts one clock cycle after en, so check if busy is set yet
+      if (busy) begin
+        if (col_idx < ncols) begin
+          busy <= 1'b1;  // don't need, but keep anyways
+          col_idx <= col_idx + 1;
+        end else begin
+          // TODO (MAYBE):  delay end by one cycle to ensure final output is written
+          busy    <= row_idx < nrows;
+          row_idx <= row_idx < nrows ? (row_idx + 1) : '0;
+          col_idx <= '0;
+        end
+      end else busy <= 1'b1;
+    end else begin
+      busy  <= 1'b0;
+      row_idx <= '0;
+      col_idx <= '0;
     end
   end
 
