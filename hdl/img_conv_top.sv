@@ -41,11 +41,11 @@ module img_conv_top
 
   // Create a hold state SRAM interface
   img_sram_intf sram_hold_intf( .clk(clk) );
-  assign sram_hold_intf.mst.din = 8'hzz;
-  assign sram_hold_intf.mst.row = 8'd0;
-  assign sram_hold_intf.mst.col = 8'd0;
-  assign sram_hold_intf.mst.write_en = 1'b0;
-  assign sram_hold_intf.mst.sense_en = 1'b1;
+  assign sram_hold_intf.din = 8'hzz;
+  assign sram_hold_intf.row = 8'd0;
+  assign sram_hold_intf.col = 8'd0;
+  assign sram_hold_intf.write_en = 1'b0;
+  assign sram_hold_intf.sense_en = 1'b1;
 
 
   // Instantiate SRAMs w/ core interfaces
@@ -113,24 +113,24 @@ module img_conv_top
   always_comb begin
     // sram_img
     unique case (currOp)
-      OP_IMG_RX: `CONNECT_SRAM_INTFS(sram_img_intf.mst, io_rx_sram_img_intf.slv)
-      OP_IMG_TX: `CONNECT_SRAM_INTFS(sram_img_intf.mst, io_tx_sram_img_intf.slv)
+      OP_IMG_RX: `CONNECT_SRAM_INTFS(sram_img_intf, io_rx_sram_img_intf)
+      OP_IMG_TX: `CONNECT_SRAM_INTFS(sram_img_intf, io_tx_sram_img_intf)
       OP_CONV: begin
         if (conv_swap_sram)
-          `CONNECT_SRAM_INTFS(sram_img_intf.mst, conv_sram_buf_intf.slv)
+          `CONNECT_SRAM_INTFS(sram_img_intf, conv_sram_buf_intf)
         else
-          `CONNECT_SRAM_INTFS(sram_img_intf.mst, conv_sram_img_intf.slv)
+          `CONNECT_SRAM_INTFS(sram_img_intf, conv_sram_img_intf)
       end
-      default:   `CONNECT_SRAM_INTFS(sram_img_intf.mst, sram_hold_intf.slv)
+      default:   `CONNECT_SRAM_INTFS(sram_img_intf, sram_hold_intf)
     endcase
 
     // sram_buf
     if (currOp != OP_CONV)
-      `CONNECT_SRAM_INTFS(sram_buf_intf.mst, sram_hold_intf.slv)
+      `CONNECT_SRAM_INTFS(sram_buf_intf, sram_hold_intf)
     else if (conv_swap_sram)
-      `CONNECT_SRAM_INTFS(sram_buf_intf.mst, conv_sram_img_intf.slv)
+      `CONNECT_SRAM_INTFS(sram_buf_intf, conv_sram_img_intf)
     else
-      `CONNECT_SRAM_INTFS(sram_buf_intf.mst, conv_sram_buf_intf.slv)
+      `CONNECT_SRAM_INTFS(sram_buf_intf, conv_sram_buf_intf)
   end
 
 
