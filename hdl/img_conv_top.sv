@@ -21,13 +21,13 @@ module img_conv_top
   input  opcode_t op,
   input  logic [7:0] din,   //rx
   output logic [7:0] dout,  //tx
-  
+
   output logic busy
 );
 
   // Interface modports cannot be multiplexed directly.
   // To solve this issue, each controller gets their own interface
-  // initialized with the same clk as the SRAM interface. 
+  // initialized with the same clk as the SRAM interface.
   // This can then be used to connect all the ports of a
   // controller interface (slv) to the SRAM interface (mst).
   // NOTE: If this doesn't work, use a macro.
@@ -126,24 +126,24 @@ module img_conv_top
   always_comb begin
     // sram_img
     unique case (currOp)
-      OP_IMG_RX: `CONNECT_SRAM_INTFS(sram_img_intf.mst, io_rx_sram_img_intf.slv);
-      OP_IMG_TX: `CONNECT_SRAM_INTFS(sram_img_intf.mst, io_tx_sram_img_intf.slv);
+      OP_IMG_RX: `CONNECT_SRAM_INTFS(sram_img_intf.mst, io_rx_sram_img_intf.slv)
+      OP_IMG_TX: `CONNECT_SRAM_INTFS(sram_img_intf.mst, io_tx_sram_img_intf.slv)
       OP_CONV: begin
         if (conv_swap_sram)
-          `CONNECT_SRAM_INTFS(sram_img_intf.mst, conv_sram_buf_intf.slv);
+          `CONNECT_SRAM_INTFS(sram_img_intf.mst, conv_sram_buf_intf.slv)
         else
-          `CONNECT_SRAM_INTFS(sram_img_intf.mst, conv_sram_img_intf.slv);
-      end               
-      default:   `CONNECT_SRAM_INTFS(sram_img_intf.mst, sram_hold_intf.slv);
+          `CONNECT_SRAM_INTFS(sram_img_intf.mst, conv_sram_img_intf.slv)
+      end
+      default:   `CONNECT_SRAM_INTFS(sram_img_intf.mst, sram_hold_intf.slv)
     endcase
 
     // sram_buf
     if (currOp != OP_CONV)
-      `CONNECT_SRAM_INTFS(sram_buf_intf.mst, sram_hold_intf.slv);
+      `CONNECT_SRAM_INTFS(sram_buf_intf.mst, sram_hold_intf.slv)
     else if (conv_swap_sram)
-      `CONNECT_SRAM_INTFS(sram_buf_intf.mst, conv_sram_img_intf.slv);
+      `CONNECT_SRAM_INTFS(sram_buf_intf.mst, conv_sram_img_intf.slv)
     else
-      `CONNECT_SRAM_INTFS(sram_buf_intf.mst, conv_sram_buf_intf.slv); 
+      `CONNECT_SRAM_INTFS(sram_buf_intf.mst, conv_sram_buf_intf.slv)
   end
 
 
@@ -165,7 +165,7 @@ module img_conv_top
     end else begin
       io_rx_rstn <= 1'b1;
       io_tx_rstn <= 1'b1;
-      
+
       if ((currOp == OP_NOP) && en) begin
         // start new op
         case (op)
@@ -175,12 +175,12 @@ module img_conv_top
           OP_SET_NROWS:  nrows <= din;
           OP_SET_NCOLS:  ncols <= din;
           OP_SET_SIGMA:  sigma <= din[2:0];
-          
+
           OP_IMG_RX: begin
             currOp <= OP_IMG_RX;
             busy <= '1;
             io_rx_en <= '1;
-          end    
+          end
           OP_IMG_TX: begin
             currOp <= OP_IMG_TX;
             io_tx_en <= '1;
