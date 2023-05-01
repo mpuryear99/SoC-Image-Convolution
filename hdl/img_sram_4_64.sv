@@ -19,20 +19,24 @@ module img_sram_4_64
   logic [3:0] sense_en;
   logic [7:0] dout [3:0];
   logic [1:0] dout_select;
+  logic [7:0] din, row, col;
 
+  assign din <= intf.din;
+  assign row <= intf.row;
+  assign col <= intf.col;
 
   // might not need, but better safe than sorry...
-  always_ff @(negedge clk) begin
+  always_ff @(negedge intf.clk) begin
     dout_select <= row[7:6];
   end
 
-  assign intf.dout = dout[dout_select];
+  assign intf.dout <= dout[dout_select];
 
   generate
     genvar i;
     for (i=0; i<4; i=i+1) begin
-      assign write_en = (row[7:6] == i) ? intf.write_en ? 1'b0;
-      assign sense_en = (row[7:6] == i) ? intf.sense_en ? 1'b1;
+      assign write_en = (row[7:6] == i) ? intf.write_en : 1'b0;
+      assign sense_en = (row[7:6] == i) ? intf.sense_en : 1'b1;
 
       sram_compiled_array sram_gen (
         .clk(intf.clk),
@@ -46,7 +50,7 @@ module img_sram_4_64
         .addr4(col[4]),   .addr12(row[4]),
         .addr5(col[5]),   .addr13(row[5]),
         .addr6(col[6]),   //.addr14(row[6]),
-        .addr7(col[7]),   //.addr15(row[7])
+        .addr7(col[7]),   //.addr15(row[7]),
 
         .din0(din[0]),    .dout0(dout[i][0]),
         .din1(din[1]),    .dout1(dout[i][1]),

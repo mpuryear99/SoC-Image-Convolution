@@ -80,6 +80,7 @@ module sram_rx_tx_tb;
   end
 
 
+  integer i;
   initial begin
     $readmemb("../../images/cat_128_128.bin", img_data_in);
 
@@ -94,7 +95,7 @@ module sram_rx_tx_tb;
     io_rx_rstn = 1;
     io_tx_rstn = 1;
 
-    for (int i=0, i<(128*128); i=i+1) begin
+    for (i=0; i<(128*128); i=i+1) begin
       @(posedge clk);
       io_rx_en = i < 1;
       io_din = img_data_in[i];
@@ -108,7 +109,7 @@ module sram_rx_tx_tb;
     @(posedge clk);
 
     io_tx_en = 1;
-    for (int i=0, i<(128*128); i=i+1) begin
+    for (i=0; i<(128*128); i=i+1) begin
       @(posedge clk);
       io_tx_en = 0;
       img_data_out[i] = io_dout;
