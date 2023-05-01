@@ -16,7 +16,7 @@ module shift_reg2
 
   always_ff @(posedge clk, negedge rstn) begin
     if (!rstn)
-      dout <= '{default: B'0};
+      dout <= '{default: '0};
     else if (up_en && down_en) begin
       // shift inward to center from both directions
       dout[0]   <= din;
