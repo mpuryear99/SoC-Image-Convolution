@@ -1,23 +1,22 @@
 // Top module of SoC
 
-import img_conv_pkg::*;
-
-
 // Interface modports cannot be multiplexed directly.
 // To solve this issue, each controller gets their own interface
 // initialized with the same clk as the SRAM interface.
 // This macro can then be used to connect all the ports of a
 // controller interface (slv) to the SRAM interface (mst).
-`define CONNECT_SRAM_INTFS(SRAM_MST, SRAM_SLV) \
-  begin \
-    SRAM_MST.din      = SRAM_SLV.din; \
-    SRAM_MST.row      = SRAM_SLV.row; \
-    SRAM_MST.col      = SRAM_SLV.col; \
-    SRAM_MST.write_en = SRAM_SLV.write_en; \
-    SRAM_MST.sense_en = SRAM_SLV.sense_en; \
-    SRAM_SLV.dout     = SRAM_MST.dout; \
-  end
+// `define CONNECT_SRAM_INTFS(SRAM_MST, SRAM_SLV) \
+//   begin \
+//     SRAM_MST.din      = SRAM_SLV.din; \
+//     SRAM_MST.row      = SRAM_SLV.row; \
+//     SRAM_MST.col      = SRAM_SLV.col; \
+//     SRAM_MST.write_en = SRAM_SLV.write_en; \
+//     SRAM_MST.sense_en = SRAM_SLV.sense_en; \
+//     SRAM_SLV.dout     = SRAM_MST.dout; \
+//   end
 
+import img_conv_pkg::*;
+import img_sram_pkg::*;
 
 module img_conv_top
 (
@@ -39,57 +38,63 @@ module img_conv_top
   opcode_t currOp;
 
 
-  // Create a hold state SRAM interface
-  img_sram_intf sram_hold_intf( .clk(clk) );
-  assign sram_hold_intf.din = 8'hzz;
-  assign sram_hold_intf.row = 8'd0;
-  assign sram_hold_intf.col = 8'd0;
-  assign sram_hold_intf.write_en = 1'b0;
-  assign sram_hold_intf.sense_en = 1'b1;
+  // Instantiate SRAMs w/ core interface structs
+  img_sram_ctrl_t sram_img_ctrl, sram_buf_ctrl;
+  logic [7:0]     sram_img_dout, sram_buf_dout;
+
+  img_sram sram0
+  (
+    .clk(clk),
+    .ctrl(sram_img_ctrl),
+    .dout(sram_img_dout)
+  );
+
+  img_sram sram1
+  (
+    .clk(clk),
+    .ctrl(sram_buf_ctrl),
+    .dout(sram_buf_dout)
+  );
 
 
-  // Instantiate SRAMs w/ core interfaces
-  img_sram_intf sram_img_intf( .clk(clk) );
-  img_sram_intf sram_buf_intf( .clk(clk) );
-  img_sram sram0( .intf(sram_img_intf.slv) );
-  img_sram sram1( .intf(sram_buf_intf.slv) );
 
-
-
-  // Instantiate IO RD/WR controllers w/ associated SRAM interfaces
-  img_sram_intf io_rx_sram_img_intf( .clk(clk) );
-  img_sram_intf io_tx_sram_img_intf( .clk(clk) );
+  // Instantiate IO RD/WR controllers w/ associated SRAM interface structs
+  img_sram_ctrl_t io_rx_sram_ctrl;
+  img_sram_ctrl_t io_tx_sram_ctrl;
   logic io_rx_en,   io_tx_en;
   logic io_rx_rstn, io_tx_rstn;
   logic io_rx_busy, io_tx_busy;
 
   io_rx_controller io_rxc
   (
+    .clk(clk),
     .rstn(io_rx_rstn),
     .en(io_rx_en),
     .nrows(nrows),
     .ncols(ncols),
     .din(din),
     .busy(io_tx_busy),
-    .sram_img(io_rx_sram_img_intf.mst)
+    .sram_ctrl(io_rx_sram_ctrl)
   );
 
   io_tx_controller io_txc
   (
-    .en(io_tx_en),
+    .clk(clk),
     .rstn(io_tx_rstn),
+    .en(io_tx_en),
     .nrows(nrows),
     .ncols(ncols),
     .dout(dout),
     .busy(io_tx_busy),
-    .sram_img(io_tx_sram_img_intf.mst)
+    .sram_ctrl(io_tx_sram_ctrl),
+    .sram_dout_in(sram_img_dout)
   );
 
 
 
-  // Instantiate row convolution controller w/ associated SRAM interfaces
-  img_sram_intf conv_sram_img_intf( .clk(clk) );
-  img_sram_intf conv_sram_buf_intf( .clk(clk) );
+  // Instantiate row convolution controller w/ associated SRAM interface structs
+  img_sram_intf conv_sram_img_ctrl;
+  img_sram_intf conv_sram_buf_ctrl;
   logic conv_rstn;
   logic conv_swap_sram;
   logic conv_busy;
@@ -100,37 +105,37 @@ module img_conv_top
     .rstn(conv_rstn),
     .nrows(conv_swap_sram ? ncols : nrows),
     .ncols(conv_swap_sram ? nrows : ncols),
-    .transpose_to_buf(1'b1),
     .sigma(sigma),
+    .transpose_to_buf(1'b1),
     .busy(conv_busy),
-    .sram_img(conv_sram_img_intf.mst),
-    .sram_buf(conv_sram_buf_intf.mst)
+    .sram_img_dout_in(conv_swap_sram ? sram_buf_dout ? sram_img_dout),
+    .sram_img_ctrl(conv_sram_img_ctrl),
+    .sram_buf_ctrl(conv_sram_buf_ctrl)
   );
 
 
 
-  // Implement SRAM interface controller multiplexing
-  always_comb begin
-    // sram_img
-    unique case (currOp)
-      OP_IMG_RX: `CONNECT_SRAM_INTFS(sram_img_intf, io_rx_sram_img_intf)
-      OP_IMG_TX: `CONNECT_SRAM_INTFS(sram_img_intf, io_tx_sram_img_intf)
-      OP_CONV: begin
-        if (conv_swap_sram)
-          `CONNECT_SRAM_INTFS(sram_img_intf, conv_sram_buf_intf)
-        else
-          `CONNECT_SRAM_INTFS(sram_img_intf, conv_sram_img_intf)
-      end
-      default:   `CONNECT_SRAM_INTFS(sram_img_intf, sram_hold_intf)
-    endcase
+  // Implement SRAM interface controller multiplexing w/ hold state o/w
+  img_sram_ctrl_t sram_ctrl_hold;
+  assign sram_ctrl_hold.din = '0;
+  assign sram_ctrl_hold.row = '0;
+  assign sram_ctrl_hold.col = '0;
+  assign sram_ctrl_hold.write_en = 1'b0;
+  assign sram_ctrl_hold.sense_en = 1'b1;
 
-    // sram_buf
-    if (currOp != OP_CONV)
-      `CONNECT_SRAM_INTFS(sram_buf_intf, sram_hold_intf)
-    else if (conv_swap_sram)
-      `CONNECT_SRAM_INTFS(sram_buf_intf, conv_sram_img_intf)
-    else
-      `CONNECT_SRAM_INTFS(sram_buf_intf, conv_sram_buf_intf)
+  always_comb begin
+    sram_img_ctrl = sram_ctrl_hold;
+    sram_buf_ctrl = sram_ctrl_hold;
+
+    // sram_img
+    case (currOp)
+      OP_IMG_RX :   sram_img_ctrl = io_rx_sram_ctrl;
+      OP_IMG_TX :   sram_img_ctrl = io_tx_sram_ctrl;
+      OP_CONV   : begin
+                    sram_img_ctrl = conv_swap_sram ? conv_sram_buf_ctrl : conv_sram_img_ctrl;
+                    sram_buf_ctrl = conv_swap_sram ? conv_sram_img_ctrl : conv_sram_buf_ctrl;
+                  end
+    endcase
   end
 
 

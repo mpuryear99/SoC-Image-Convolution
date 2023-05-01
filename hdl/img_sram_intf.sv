@@ -1,4 +1,5 @@
 // Interface to img_sram module
+// *** DEPRECATED ***
 
 interface img_sram_intf
 (
