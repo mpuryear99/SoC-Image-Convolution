@@ -21,16 +21,16 @@ module img_sram_4_64
   logic [1:0] dout_select;
   logic [7:0] din, row, col;
 
-  assign din <= intf.din;
-  assign row <= intf.row;
-  assign col <= intf.col;
+  assign din = intf.din;
+  assign row = intf.row;
+  assign col = intf.col;
 
   // might not need, but better safe than sorry...
   always_ff @(negedge intf.clk) begin
     dout_select <= row[7:6];
   end
 
-  assign intf.dout <= dout[dout_select];
+  assign intf.dout = dout[dout_select];
 
   generate
     genvar i;
