@@ -39,7 +39,7 @@ module sram_rx_tx_tb;
     .ncols(ncols),
     .din(io_din),
     .busy(io_tx_busy),
-    .sram_img(io_rx_sram_img_intf.mst)
+    .sram_img(io_rx_sram_intf.mst)
   );
 
   io_tx_controller uut_tx
@@ -50,13 +50,13 @@ module sram_rx_tx_tb;
     .ncols(ncols),
     .dout(io_dout),
     .busy(io_tx_busy),
-    .sram_img(io_tx_sram_img_intf.mst)
+    .sram_img(io_tx_sram_intf.mst)
   );
 
 
   // Instantiate SRAM w/ interface
   img_sram_intf sram_intf( .clk(clk) );
-  img_sram sram0( .intf(sram_intf.slv) );
+  img_sram_4_64 sram0( .intf(sram_intf.slv) );
 
 
   // Setup SRAM connections
@@ -68,9 +68,10 @@ module sram_rx_tx_tb;
     sram_intf.write_en = connect_sram_tx ? io_tx_sram_intf.write_en : io_rx_sram_intf.write_en;
     sram_intf.sense_en = connect_sram_tx ? io_tx_sram_intf.sense_en : io_rx_sram_intf.sense_en;
 
-    io_rx_sram_intf.dout = sram_img_intf.dout;
-    io_tx_sram_intf.dout = sram_img_intf.dout;
+    io_rx_sram_intf.dout = sram_intf.dout;
+    io_tx_sram_intf.dout = sram_intf.dout;
   end
+
 
   // Setup clock with period of 10ns
   initial begin
@@ -79,9 +80,8 @@ module sram_rx_tx_tb;
   end
 
 
-
   initial begin
-    $readmemb("../images/cat_128_128.bin", img_data_in);
+    $readmemb("../../images/cat_128_128.bin", img_data_in);
 
     io_rx_rstn = 0;
     io_tx_rstn = 0;
@@ -116,7 +116,7 @@ module sram_rx_tx_tb;
 
     @(negedge io_tx_busy);
 
-    $writememb("../images/cat_tb_128_128.bin", img_data_in);
+    $writememb("cat_tb_128_128.bin", img_data_in);
     $stop;
   end
 
