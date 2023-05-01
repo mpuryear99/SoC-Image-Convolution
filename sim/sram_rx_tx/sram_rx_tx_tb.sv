@@ -1,6 +1,7 @@
 // io testbench
 
 `timescale 1ns/10ps
+import img_sram_pkg::*;
 
 module sram_rx_tx_tb;
 
@@ -16,61 +17,54 @@ module sram_rx_tx_tb;
   assign ncols = 128;
 
 
-  // Create a hold state SRAM interface
-  img_sram_intf sram_hold_intf( .clk(clk) );
-  assign sram_hold_intf.din = 8'hzz;
-  assign sram_hold_intf.row = 8'd0;
-  assign sram_hold_intf.col = 8'd0;
-  assign sram_hold_intf.write_en = 1'b0;
-  assign sram_hold_intf.sense_en = 1'b1;
+  // Instantiate SRAM w/ interface struct
+  img_sram_ctrl_t sram_ctrl;
+  logic [7:0]     sram_dout;
 
-  // Instantiate IO RD/WR controllers w/ associated SRAM interfaces
-  img_sram_intf io_rx_sram_intf( .clk(clk) );
-  img_sram_intf io_tx_sram_intf( .clk(clk) );
+  img_sram uut_sram
+  (
+    .clk(clk),
+    .ctrl(sram_ctrl),
+    .dout(sram_dout)
+  );
+
+
+  // Instantiate IO RD/WR controllers w/ associated SRAM interface structs
+  img_sram_ctrl_t io_rx_sram_ctrl;
+  img_sram_ctrl_t io_tx_sram_ctrl;
   logic io_rx_en,   io_tx_en;
   logic io_rx_rstn, io_tx_rstn;
   logic io_rx_busy, io_tx_busy;
 
   io_rx_controller uut_rx
   (
+    .clk(clk)
     .rstn(io_rx_rstn),
     .en(io_rx_en),
     .nrows(nrows),
     .ncols(ncols),
     .din(io_din),
     .busy(io_tx_busy),
-    .sram_img(io_rx_sram_intf.mst)
+    .sram_ctrl(io_rx_sram_ctrl)
   );
 
   io_tx_controller uut_tx
   (
-    .en(io_tx_en),
+    .clk(clk),
     .rstn(io_tx_rstn),
+    .en(io_tx_en),
     .nrows(nrows),
     .ncols(ncols),
     .dout(io_dout),
     .busy(io_tx_busy),
-    .sram_img(io_tx_sram_intf.mst)
+    .sram_ctrl(io_tx_sram_ctrl),
+    .sram_dout_in(sram_dout)
   );
 
 
-  // Instantiate SRAM w/ interface
-  img_sram_intf sram_intf( .clk(clk) );
-  img_sram_4_64 sram0( .intf(sram_intf.slv) );
-
-
   // Setup SRAM connections
-  logic connect_sram_tx;
-  always_comb begin
-    sram_intf.din      = connect_sram_tx ? io_tx_sram_intf.din      : io_rx_sram_intf.din;
-    sram_intf.row      = connect_sram_tx ? io_tx_sram_intf.row      : io_rx_sram_intf.row;
-    sram_intf.col      = connect_sram_tx ? io_tx_sram_intf.col      : io_rx_sram_intf.col;
-    sram_intf.write_en = connect_sram_tx ? io_tx_sram_intf.write_en : io_rx_sram_intf.write_en;
-    sram_intf.sense_en = connect_sram_tx ? io_tx_sram_intf.sense_en : io_rx_sram_intf.sense_en;
-
-    io_rx_sram_intf.dout = sram_intf.dout;
-    io_tx_sram_intf.dout = sram_intf.dout;
-  end
+  logic connect_sram_rx;
+  assign sram_ctrl = connect_sram_rx ? io_rx_sram_ctrl : io_tx_sram_ctrl;
 
 
   // Setup clock with period of 10ns
@@ -87,7 +81,7 @@ module sram_rx_tx_tb;
     io_rx_rstn = 0;
     io_tx_rstn = 0;
 
-    connect_sram_tx = 0;
+    connect_sram_rx = 1;
     io_rx_en = 0;
     io_tx_en = 0;
 
@@ -102,7 +96,7 @@ module sram_rx_tx_tb;
     end
 
     @(negedge io_rx_busy);
-    connect_sram_tx = 1;
+    connect_sram_rx = 0;
     io_rx_en = 0;
 
     @(posedge clk);

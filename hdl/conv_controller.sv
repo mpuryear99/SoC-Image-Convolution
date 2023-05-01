@@ -1,29 +1,30 @@
 // Module to perform convolution across rows
 
+import img_sram_pkg::*
+
 // Not designed for ncols < 6
 // Rather than using an enable signal, just hold rstn high.
 //   (easy way to ensure everything is reset on start)
 module conv_row_controller
 (
-  input  logic clk,
-  input  logic rstn,
+  input  logic       clk,
+  input  logic       rstn,
   input  logic [7:0] nrows,
   input  logic [7:0] ncols,
-  input  logic transpose_to_buf,
-
   input  logic [2:0] sigma,
+  input  logic       transpose_to_buf,
 
-  output logic busy,
+  output logic       busy,
 
-  img_sram_intf.mst  sram_img,  // input
-  img_sram_intf.mst  sram_buf   // output
+  input  logic [7:0]     sram_img_dout_in,
+  output img_sram_ctrl_t sram_img_ctrl,   // input
+  output img_sram_ctrl_t sram_buf_ctrl,   // output
 );
 
   logic [7:0] conv_buff [10:0];
   logic [7:0] conv_dout;
 
   logic sr_rstn, sr_en;
-  logic [7:0] sr_din;
   logic sr_center_shift;
 
   shift_reg2 sreg
@@ -33,7 +34,7 @@ module conv_row_controller
     .rstn(sr_rstn),
     .up_en(sr_en),
     .down_en(sr_center_shift),
-    .din(sr_din),
+    .din(sram_img_dout_in),
     .dout(conv_buff)
   );
 
@@ -58,18 +59,18 @@ module conv_row_controller
 
   always_comb begin
     // Always read from main img sram
-    sram_img.write_en = 0;
-    sram_img.sense_en = 0;
-    sram_img.row = row_read_idx;
-    sram_img.col = col_read_idx;
-    sr_din = sram_img.dout;
+    sram_img_ctrl.write_en = 1'b0;
+    sram_img_ctrl.sense_en = 1'b0;
+    sram_img_ctrl.row = row_read_idx;
+    sram_img_ctrl.col = col_read_idx;
+    // sr_din = sram_img.dout;
 
     // Conditional write to buffer sram
-    sram_buf.write_en = write_en;
-    sram_buf.sense_en = 1;
-    sram_buf.row = transpose_to_buf ? col_write_idx : row_write_idx;
-    sram_buf.col = transpose_to_buf ? row_write_idx : col_write_idx;
-    sram_buf.din = conv_dout; // May need to create a ff for last_conv_dout
+    sram_buf_ctrl.write_en = write_en;
+    sram_buf_ctrl.sense_en = 1'b1;
+    sram_buf_ctrl.row = transpose_to_buf ? col_write_idx : row_write_idx;
+    sram_buf_ctrl.col = transpose_to_buf ? row_write_idx : col_write_idx;
+    sram_buf_ctrl.din = conv_dout;  // May need to create a ff for last_conv_dout
   end
 
 
@@ -100,7 +101,7 @@ module conv_row_controller
       row_write_idx <= row_read_idx;
 
       if (col_read_idx < 6) begin
-        // new row preload
+        // new row preload (front mirror)
         sr_center_shift <= 1;
         col_write_idx <= 0;
         col_read_idx <= col_read_idx + 1;
@@ -113,7 +114,7 @@ module conv_row_controller
         write_en <= 1;
 
         if (postload_offset < 5) begin
-          // postload (reflection of last 5 cols, reverse read direction)
+          // postload (mirror of last 5 cols, reverse read direction)
           // write_en <= 1;
           col_read_idx <= (ncols-1) - postload_offset;
           postload_offset <= postload_offset + 1;

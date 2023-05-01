@@ -1,33 +1,33 @@
 // Module to facilitate writing image data to SRAM
 
+import img_sram_pkg::*;
+
 module io_rx_controller
 (
-  // input  logic clk,
-  input  logic en,
-  input  logic rstn,
+  input  logic       clk,
+  input  logic       rstn,
+  input  logic       en,
   input  logic [7:0] nrows,
   input  logic [7:0] ncols,
   input  logic [7:0] din,
 
-  output logic busy,
+  output logic       busy,
 
-  img_sram_intf.mst  sram_img
+  output img_sram_ctrl_t sram_ctrl
 );
-
-  logic clk;
-  assign clk = sram_img.clk;
 
   logic [8:0] row_idx;
   logic [8:0] col_idx;
-  logic [7:0] din_hold;
-  assign sram_img.sense_en = 1'b1;
-  assign sram_img.write_en = busy;
-  assign sram_img.row = row_idx[7:0];
-  assign sram_img.col = col_idx[7:0];
-  assign sram_img.din = din_hold;
+
+  always_comb begin
+    sram_ctrl.sense_en = 1'b1;
+    sram_ctrl.write_en = busy;
+    sram_ctrl.row = row_idx[7:0];
+    sram_ctrl.col = col_idx[7:0];
+  end
 
   always_ff @(posedge clk) begin
-    din_hold <= din;
+    sram_ctrl.din = din;
   end
 
   always_ff @(posedge clk, negedge rstn) begin

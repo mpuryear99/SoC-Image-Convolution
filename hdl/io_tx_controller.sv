@@ -1,32 +1,35 @@
 // Module to facilitate reading image data from SRAM
 
+import img_sram_pkg::*;
+
 module io_tx_controller
 (
-  // input  logic clk,
-  input  logic en,
-  input  logic rstn,
+  input  logic       clk,
+  input  logic       rstn,
+  input  logic       en,
   input  logic [7:0] nrows,
   input  logic [7:0] ncols,
 
   output logic [7:0] dout,
-  output logic busy,
+  output logic       busy,
 
-  img_sram_intf.mst  sram_img
+  output img_sram_ctrl_t sram_ctrl,
+  input  logic [7:0]     sram_dout_in
 );
-
-  logic clk;
-  assign clk = sram_img.clk;
 
   logic [8:0] row_idx;
   logic [8:0] col_idx;
-  assign sram_img.sense_en = ~busy;
-  assign sram_img.write_en = 0;
-  assign sram_img.row = row_idx[7:0];
-  assign sram_img.col = col_idx[7:0];
-  assign sram_img.din = 8'hzz; // tristate
+
+  always_comb begin
+    sram_ctrl.sense_en = ~busy;
+    sram_ctrl.write_en = 1'b0;
+    sram_ctrl.row = row_idx[7:0];
+    sram_ctrl.col = col_idx[7:0];
+    sram_ctrl.din = '0;  // not wring, so doesn't matter
+  end
 
   always_ff @(posedge clk) begin
-    dout <= sram_img.dout;
+    dout <= sram_dout_in;
   end
 
 
