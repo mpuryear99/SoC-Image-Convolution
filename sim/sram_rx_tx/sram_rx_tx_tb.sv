@@ -67,14 +67,15 @@ module sram_rx_tx_tb;
   assign sram_ctrl = connect_sram_rx ? io_rx_sram_ctrl : io_tx_sram_ctrl;
 
 
-  // Setup clock with period of 10ns
+  // Setup clock with period of 2ns
   initial begin
     clk = 0;
-    forever #5 clk = ~clk;
+    forever #1 clk = ~clk;
   end
 
 
   integer i;
+  integer fd;
   initial begin
 
     fd = $fopen("cat_128_128.bin","rb");
@@ -82,7 +83,7 @@ module sram_rx_tx_tb;
       $display("Could not open file image file.");
       $stop;
     end
-    $fread(fd, img_data_in);
+    $fread(img_data_in, fd);
     $fclose(fd);
 
 
@@ -97,6 +98,11 @@ module sram_rx_tx_tb;
     io_rx_rstn = 1;
     io_tx_rstn = 1;
 
+    @(posedge clk);
+    @(negedge clk);
+    io_rx_en = 1;
+    io_din = img_data_in[0];
+
     for (i=0; i<(128*128); i=i+1) begin
       @(posedge clk);
       io_rx_en = i < 1;
@@ -108,9 +114,11 @@ module sram_rx_tx_tb;
     io_rx_en = 0;
 
     @(posedge clk);
-    @(posedge clk);
+    @(negedge clk);
 
     io_tx_en = 1;
+    @(posedge clk);
+    
     for (i=0; i<(128*128); i=i+1) begin
       @(posedge clk);
       io_tx_en = 0;
@@ -125,7 +133,7 @@ module sram_rx_tx_tb;
       $display("Could not open file image output file.");
       $stop;
     end
-    $fwrite(fd, img_data_out);
+    $fwrite(fd, "%u", img_data_out);
     $fclose(fd);
 
     $stop;
