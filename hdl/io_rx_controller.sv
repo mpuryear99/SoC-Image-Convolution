@@ -24,11 +24,9 @@ module io_rx_controller
     sram_ctrl.write_en = busy;
     sram_ctrl.row = row_idx[7:0];
     sram_ctrl.col = col_idx[7:0];
-  end
-
-  always_ff @(posedge clk) begin
     sram_ctrl.din = din;
   end
+
 
   always_ff @(posedge clk, negedge rstn) begin
     if (!rstn) begin

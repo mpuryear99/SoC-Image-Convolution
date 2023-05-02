@@ -128,7 +128,7 @@ module sram_rx_tx_tb;
       img_data_out[i] = io_dout;
     end
 
-    // @(negedge io_tx_busy);
+    @(negedge io_tx_busy);
 
 
     fd = $fopen("cat_tb_128_128.bin","wb");
@@ -136,9 +136,9 @@ module sram_rx_tx_tb;
       $display("Could not open file image output file.");
       $stop;
     end
-    $fclose(fd);
     for (i=0; i<(ROWS*COLS); i=i+1)
-      $fwrite(fd, "%u", img_data_out[i]);
+      $fwrite(fd, "%c", img_data_out[i]);
+    $fclose(fd);
 
     $stop;
   end
