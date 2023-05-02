@@ -5,6 +5,9 @@ import img_sram_pkg::*;
 
 module sram_rx_tx_tb;
 
+  localparam ROWS = 128;
+  localparam COLS = 128;
+
   logic clk;
   logic [7:0] nrows;
   logic [7:0] ncols;
@@ -13,8 +16,8 @@ module sram_rx_tx_tb;
   logic [7:0] io_din;
   logic [7:0] io_dout;
 
-  assign nrows = 128;
-  assign ncols = 128;
+  assign nrows = ROWS;
+  assign ncols = COLS;
 
 
   // Instantiate SRAM w/ interface struct
@@ -103,7 +106,7 @@ module sram_rx_tx_tb;
     io_rx_en = 1;
     io_din = img_data_in[0];
 
-    for (i=0; i<(128*128); i=i+1) begin
+    for (i=0; i<(ROWS*COLS); i=i+1) begin
       @(posedge clk);
       io_rx_en = i < 1;
       io_din = img_data_in[i];
@@ -117,15 +120,15 @@ module sram_rx_tx_tb;
     @(negedge clk);
 
     io_tx_en = 1;
-    @(posedge clk);
-    
-    for (i=0; i<(128*128); i=i+1) begin
-      @(posedge clk);
+    @(posedge clk);  // start tx
+    @(posedge clk);  // first tx valid 
+    for (i=0; i<(ROWS*COLS); i=i+1) begin
+      @(negedge clk);
       io_tx_en = 0;
       img_data_out[i] = io_dout;
     end
 
-    @(negedge io_tx_busy);
+    // @(negedge io_tx_busy);
 
 
     fd = $fopen("cat_tb_128_128.bin","wb");
@@ -133,8 +136,9 @@ module sram_rx_tx_tb;
       $display("Could not open file image output file.");
       $stop;
     end
-    $fwrite(fd, "%u", img_data_out);
     $fclose(fd);
+    for (i=0; i<(ROWS*COLS); i=i+1)
+      $fwrite(fd, "%u", img_data_out[i]);
 
     $stop;
   end
