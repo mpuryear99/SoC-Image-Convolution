@@ -11,8 +11,8 @@ module sram_rx_tx_tb;
   logic clk;
   logic [7:0] nrows;
   logic [7:0] ncols;
-  logic [7:0] img_data_in  [0:128*128-1];
-  logic [7:0] img_data_out [0:128*128-1];
+  logic [7:0] img_data_in  [0:ROWS*COLS-1];
+  logic [7:0] img_data_out [0:ROWS*COLS-1];
   logic [7:0] io_din;
   logic [7:0] io_dout;
 
