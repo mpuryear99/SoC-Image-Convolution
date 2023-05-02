@@ -93,8 +93,8 @@ module img_conv_top
 
 
   // Instantiate row convolution controller w/ associated SRAM interface structs
-  img_sram_intf conv_sram_img_ctrl;
-  img_sram_intf conv_sram_buf_ctrl;
+  img_sram_ctrl_t conv_sram_img_ctrl;
+  img_sram_ctrl_t conv_sram_buf_ctrl;
   logic conv_rstn;
   logic conv_swap_sram;
   logic conv_busy;
@@ -108,7 +108,7 @@ module img_conv_top
     .sigma(sigma),
     .transpose_to_buf(1'b1),
     .busy(conv_busy),
-    .sram_img_dout_in(conv_swap_sram ? sram_buf_dout ? sram_img_dout),
+    .sram_img_dout_in(conv_swap_sram ? sram_buf_dout : sram_img_dout),
     .sram_img_ctrl(conv_sram_img_ctrl),
     .sram_buf_ctrl(conv_sram_buf_ctrl)
   );

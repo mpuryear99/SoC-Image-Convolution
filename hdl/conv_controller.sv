@@ -1,6 +1,6 @@
 // Module to perform convolution across rows
 
-import img_sram_pkg::*
+import img_sram_pkg::*;
 
 // Not designed for ncols < 6
 // Rather than using an enable signal, just hold rstn high.
@@ -18,7 +18,7 @@ module conv_row_controller
 
   input  logic [7:0]     sram_img_dout_in,
   output img_sram_ctrl_t sram_img_ctrl,   // input
-  output img_sram_ctrl_t sram_buf_ctrl,   // output
+  output img_sram_ctrl_t sram_buf_ctrl    // output
 );
 
   logic [7:0] conv_buff [10:0];
@@ -27,8 +27,7 @@ module conv_row_controller
   logic sr_rstn, sr_en;
   logic sr_center_shift;
 
-  shift_reg2 sreg
-  #(.N(11), .B(8))
+  shift_reg2 #(.N(11), .B(8)) sreg
   (
     .clk(clk),
     .rstn(sr_rstn),

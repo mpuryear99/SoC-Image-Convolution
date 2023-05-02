@@ -10,7 +10,7 @@ import img_sram_pkg::*;
 module img_sram
 (
   input  logic            clk,
-  input  st_img_sram_ctrl ctrl,
+  input  img_sram_ctrl_t  ctrl,
   output [7:0]            dout
 );
 

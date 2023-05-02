@@ -21,7 +21,7 @@ module sram_rx_tx_tb;
   img_sram_ctrl_t sram_ctrl;
   logic [7:0]     sram_dout;
 
-  img_sram uut_sram
+  img_sram_4_64 uut_sram
   (
     .clk(clk),
     .ctrl(sram_ctrl),
@@ -38,13 +38,13 @@ module sram_rx_tx_tb;
 
   io_rx_controller uut_rx
   (
-    .clk(clk)
+    .clk(clk),
     .rstn(io_rx_rstn),
     .en(io_rx_en),
     .nrows(nrows),
     .ncols(ncols),
     .din(io_din),
-    .busy(io_tx_busy),
+    .busy(io_rx_busy),
     .sram_ctrl(io_rx_sram_ctrl)
   );
 
@@ -76,7 +76,7 @@ module sram_rx_tx_tb;
 
   integer i;
   initial begin
-    $readmemb("../../images/cat_128_128.bin", img_data_in);
+    $readmemb("/home/dferrer1/SoC-Image-Convolution/images/cat_128_128.bin", img_data_in);
 
     io_rx_rstn = 0;
     io_tx_rstn = 0;
