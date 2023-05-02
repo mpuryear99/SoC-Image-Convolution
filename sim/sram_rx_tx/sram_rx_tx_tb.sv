@@ -76,7 +76,15 @@ module sram_rx_tx_tb;
 
   integer i;
   initial begin
-    $readmemb("/home/dferrer1/SoC-Image-Convolution/images/cat_128_128.bin", img_data_in);
+
+    fd = $fopen("cat_128_128.bin","rb");
+    if (fd==0) begin
+      $display("Could not open file image file.");
+      $stop;
+    end
+    $fread(fd, img_data_in);
+    $fclose(fd);
+
 
     io_rx_rstn = 0;
     io_tx_rstn = 0;
@@ -111,7 +119,15 @@ module sram_rx_tx_tb;
 
     @(negedge io_tx_busy);
 
-    $writememb("cat_tb_128_128.bin", img_data_in);
+
+    fd = $fopen("cat_tb_128_128.bin","wb");
+    if (fd==0) begin
+      $display("Could not open file image output file.");
+      $stop;
+    end
+    $fwrite(fd, img_data_out);
+    $fclose(fd);
+
     $stop;
   end
 
