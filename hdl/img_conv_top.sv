@@ -1,20 +1,5 @@
 // Top module of SoC
 
-// Interface modports cannot be multiplexed directly.
-// To solve this issue, each controller gets their own interface
-// initialized with the same clk as the SRAM interface.
-// This macro can then be used to connect all the ports of a
-// controller interface (slv) to the SRAM interface (mst).
-// `define CONNECT_SRAM_INTFS(SRAM_MST, SRAM_SLV) \
-//   begin \
-//     SRAM_MST.din      = SRAM_SLV.din; \
-//     SRAM_MST.row      = SRAM_SLV.row; \
-//     SRAM_MST.col      = SRAM_SLV.col; \
-//     SRAM_MST.write_en = SRAM_SLV.write_en; \
-//     SRAM_MST.sense_en = SRAM_SLV.sense_en; \
-//     SRAM_SLV.dout     = SRAM_MST.dout; \
-//   end
-
 import img_conv_pkg::*;
 import img_sram_pkg::*;
 
@@ -42,14 +27,14 @@ module img_conv_top
   img_sram_ctrl_t sram_img_ctrl, sram_buf_ctrl;
   logic [7:0]     sram_img_dout, sram_buf_dout;
 
-  img_sram sram0
+  img_sram_4_64 sram0
   (
     .clk(clk),
     .ctrl(sram_img_ctrl),
     .dout(sram_img_dout)
   );
 
-  img_sram sram1
+  img_sram_4_64 sram1
   (
     .clk(clk),
     .ctrl(sram_buf_ctrl),
@@ -127,7 +112,7 @@ module img_conv_top
     sram_img_ctrl = sram_ctrl_hold;
     sram_buf_ctrl = sram_ctrl_hold;
 
-    // sram_img
+    // sram ctrl multiplexing
     case (currOp)
       OP_IMG_RX :   sram_img_ctrl = io_rx_sram_ctrl;
       OP_IMG_TX :   sram_img_ctrl = io_tx_sram_ctrl;
@@ -139,11 +124,26 @@ module img_conv_top
   end
 
 
+  // busy signal multiplexing
+  //  This is not set by ff to get sychronized insight into controller functionality
+  always_comb begin
+    case (currOp)
+      OP_IMG_RX : busy = io_rx_en;
+      OP_IMG_TX : busy = io_tx_en;
+      OP_CONV   : busy = 1'b0;
+      default   : busy = 0'b0;
+    endcase
+  end
+
+
+
   // State machine control logic
+  logic conv_op_starting;
   always_ff @(posedge clk, negedge rstn) begin
     if (!rstn) begin
       currOp <= OP_NOP;
-      busy  <= 1'b0;
+      conv_op_starting = 0'b0;
+      //busy  <= 1'b0;
       nrows <= 8'd8;
       ncols <= 8'd8;
       sigma <= 3'b0;
@@ -161,8 +161,8 @@ module img_conv_top
       if ((currOp == OP_NOP) && en) begin
         // start new op
         case (op)
-          OP_GET_NROWS:  dout  <= nrows;
-          OP_GET_NCOLS:  dout  <= ncols;
+          OP_GET_NROWS:  dout  <= nrows < 1 ? 1 : nrows;
+          OP_GET_NCOLS:  dout  <= ncols < 1 ? 1 : ncols;
           OP_GET_SIGMA:  dout  <= sigma;   // may need to zero pad
           OP_SET_NROWS:  nrows <= din;
           OP_SET_NCOLS:  ncols <= din;
@@ -170,51 +170,55 @@ module img_conv_top
 
           OP_IMG_RX: begin
             currOp <= OP_IMG_RX;
-            busy <= '1;
             io_rx_en <= '1;
           end
           OP_IMG_TX: begin
             currOp <= OP_IMG_TX;
             io_tx_en <= '1;
-            busy <= '1;
           end
           OP_CONV: begin
             currOp <= OP_CONV;
             conv_rstn <= '1;
             conv_swap_sram <= '0;
-            busy <= '1;
+            conv_op_starting <= 1;
           end
           default:  currOp <= OP_NOP;  // do nothing
         endcase
       end
       else if (currOp == OP_IMG_RX) begin
-        io_rx_en <= '0;
-        busy <= io_rx_busy;
-        currOp <= io_rx_busy ? OP_IMG_RX : OP_NOP;
+        if (io_rx_en) begin
+          io_rx_en <= ~io_rx_busy;
+        end else begin
+          currOp <= io_rx_busy ? OP_IMG_RX : OP_NOP;
+        end
       end
       else if (currOp == OP_IMG_TX) begin
-        io_tx_en <= '0;
-        busy <= io_tx_busy;
-        currOp <= io_tx_busy ? OP_IMG_TX : OP_NOP;
+        if (io_tx_en) begin
+          io_tx_en <= ~io_tx_busy;
+        end else begin
+          currOp <= io_tx_busy ? OP_IMG_TX : OP_NOP;
+        end
       end
       else if (currOp == OP_CONV) begin
         // Convolution needs to run twice
-        if (!conv_swap_sram) begin
+        if (conv_op_starting) begin
+          conv_op_starting <= ~conv_busy;
+        end
+        else if (!conv_swap_sram) begin
           // First Pass:  Conv across rows
-          busy <= '1;
           if (!conv_busy) begin
             conv_swap_sram <= '1;
             conv_rstn <= '0;
           end
-        end else begin
+        end
+        else begin
           // Second Pass:  Conv down cols
           if (!conv_rstn) begin
-            busy <= '1;
             conv_rstn <= '1;
+            conv_op_starting <= '1;
           end
           else if (!conv_busy) begin
             // Done
-            busy <= 0;
             conv_swap_sram <= '0;
             conv_rstn <= '0;
             currOp <= OP_NOP;
@@ -223,6 +227,5 @@ module img_conv_top
       end
     end
   end
-
 
 endmodule
