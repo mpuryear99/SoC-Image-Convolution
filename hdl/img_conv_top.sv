@@ -92,7 +92,7 @@ module img_conv_top
     .nrows(conv_swap_sram ? ncols : nrows),
     .ncols(conv_swap_sram ? nrows : ncols),
     .sigma(sigma),
-    .transpose_to_buf(1'b0),
+    .transpose_to_buf(1'b1),
     .busy(conv_busy),
     .sram_img_dout_in(conv_swap_sram ? sram_buf_dout : sram_img_dout),
     .sram_img_ctrl(conv_sram_img_ctrl),

@@ -93,27 +93,27 @@ module conv_row_controller
       // This should always be delayed by 1 clock cycle
       row_write_idx <= row_read_idx;
 
-      if (col_read_idx < 5) begin
+      if (cols_read < 6) begin
         // new row preload (front mirror)
-        sr_center_shift <= 1;
         col_write_idx <= 0;
         col_read_idx <= col_read_idx + 1;
         cols_read <= cols_read + 1;
 
-        write_en <= 0;
+        sr_center_shift <= (cols_read < 5);
+        write_en <= (cols_read + 1) == 6; //0;
       end
-      else if (cols_read >= ncols) begin
-        col_write_idx <= col_write_idx + 1;
+      else if (cols_read >= (ncols-1)) begin
+        col_write_idx <= (col_write_idx + 1) % ncols;
         write_en <= 1;
 
         if (postload_offset < 5) begin
           // postload (mirror of last 5 cols, reverse read direction)
           // write_en <= 1;
           sr_center_shift <= 0;
-          col_read_idx <= (ncols-1) - postload_offset;
+          col_read_idx <= (ncols-1) - postload_offset - 1;
           postload_offset <= postload_offset + 1;
         end
-        else if (row_read_idx < nrows) begin
+        else if (row_read_idx < nrows-1) begin
           // reset and start next row
           // write_en <= 1; // Still need to write the last col (VERIFY THIS)
           sr_center_shift <= 1;
@@ -125,12 +125,13 @@ module conv_row_controller
         else begin
           // done (no more rows)
           done <= 1;
-          // write_en <= 1; // Still need to write the last col (VERIFY THIS)
+          // write_en <= 1; // Still need to write the last col (VERIFY THIS - VERIFIED)
         end
       end
       else begin
         // middle columns
         sr_center_shift <= 0;
+        // if (cols_read > 5)
         col_write_idx <= col_write_idx + 1;
         col_read_idx <= col_read_idx + 1;
         cols_read <= cols_read + 1;
