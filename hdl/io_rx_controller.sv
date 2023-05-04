@@ -35,7 +35,7 @@ module io_rx_controller
       col_idx <= '0;
     end
     else if ((en || busy) && (row_idx <= nrows)) begin
-      if (col_idx < ncols) begin
+      if (col_idx < (ncols-1)) begin
         busy <= 1'b1;
         if (busy)
           col_idx <= col_idx + 1;

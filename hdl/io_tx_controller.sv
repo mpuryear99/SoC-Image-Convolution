@@ -42,7 +42,7 @@ module io_tx_controller
     else if ((en || busy) && (row_idx <= nrows)) begin
       // output starts one clock cycle after en, so check if busy is set yet
       if (busy) begin
-        if (col_idx < ncols) begin
+        if (col_idx < (ncols-1)) begin
           busy <= 1'b1;  // don't need, but keep anyways
           col_idx <= col_idx + 1;
         end else begin
