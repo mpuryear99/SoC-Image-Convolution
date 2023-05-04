@@ -1,16 +1,18 @@
 // Testbench for img_conv_top module
 
+`timescale 1ns/10ps
 import img_conv_pkg::*;
 
 module top_tb;
 
-  localparam SIGMA = 5;
-  localparam NROWS = 16;
-  localparam NCOLS = 16;
+  localparam SIGMA = 0;
+  localparam NROWS = 8;
+  localparam NCOLS = 8;
   localparam FILE_RD = "../../images/noise_16_16.bin";
   localparam FILE_WR = "./tb_data_out.bin";
-  localparam DO_CONV = 0;
-  localparam DO_FILE_WRITE = 0;
+  localparam DO_CONV = 1;
+  localparam DO_FILE_WRITE = 1;
+  localparam CHECK_IMG_DATA_MATCH = 1;
 
   logic [7:0] img_data_in  [0:NROWS*NCOLS-1];
   logic [7:0] img_data_out [0:NROWS*NCOLS-1];
@@ -21,7 +23,7 @@ module top_tb;
   logic [7:0] dout;
   opcode_t    op;
 
-  img_conv_top uut(.(*));
+  img_conv_top uut(.*);
 
   // Setup clock with period of 2ns
   initial begin
@@ -39,7 +41,7 @@ module top_tb;
     en = 0;
     op = OP_NOP;
     @(posedge clk);
-    rstn = 0;
+    rstn = 1;
 
     // test NOP (Check signals in sim)
     @(negedge clk);
@@ -95,7 +97,7 @@ module top_tb;
     en = 0;
     for (i=1; i<(NROWS*NCOLS); i=i+1) begin
       @(posedge clk);
-      io_din = img_data_in[i];
+      din = img_data_in[i];
     end
 
     if (busy) @(negedge busy);
@@ -130,13 +132,13 @@ module top_tb;
     @(posedge clk);  // TX first output starts 1 cycle after busy
     for (i=0; i<(NROWS*NCOLS); i=i+1) begin
       @(negedge clk);
-      img_data_out[i];
+      img_data_out[i] = dout;
     end
 
     if (busy) @(negedge busy);
 
 
-    if (!DO_CONV) begin
+    if (CHECK_IMG_DATA_MATCH) begin
       assert (img_data_in == img_data_out)
         $display ("OK. TX data matches RX.");
     end
@@ -148,7 +150,7 @@ module top_tb;
         $display("Could not open output file.");
         $stop;
       end
-      for (i=0; i<(ROWS*COLS); i=i+1)
+      for (i=0; i<(NROWS*NCOLS); i=i+1)
         $fwrite(fd, "%c", img_data_out[i]);
       $fclose(fd);
     end

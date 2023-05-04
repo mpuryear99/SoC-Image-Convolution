@@ -24,14 +24,13 @@ module conv_row_controller
   logic [7:0] conv_buff [10:0];
   logic [7:0] conv_dout;
 
-  logic sr_rstn, sr_en;
   logic sr_center_shift;
 
   shift_reg2 #(.N(11), .B(8)) sreg
   (
     .clk(clk),
-    .rstn(sr_rstn),
-    .up_en(sr_en),
+    .rstn(rstn),
+    .up_en(rstn),  // always shift (Note: read takes 1 cycle so first shift is trash)
     .down_en(sr_center_shift),
     .din(sram_img_dout_in),
     .dout(conv_buff)
@@ -78,9 +77,7 @@ module conv_row_controller
       busy <= '0;
       done <= '0;
 
-      sr_rstn <= '0;
-      sr_en <= '0;
-      sr_center_shift <= '0;
+      sr_center_shift <= '1;
 
       row_read_idx <= '0;
       row_write_idx <= '0;
@@ -93,13 +90,10 @@ module conv_row_controller
     else if (!done) begin
       busy <= 1;
 
-      // always shift (Note: read takes 1 cycle so first shift is trash)
-      sr_en <= 1;
-
       // This should always be delayed by 1 clock cycle
       row_write_idx <= row_read_idx;
 
-      if (col_read_idx < 6) begin
+      if (col_read_idx < 5) begin
         // new row preload (front mirror)
         sr_center_shift <= 1;
         col_write_idx <= 0;
@@ -115,12 +109,14 @@ module conv_row_controller
         if (postload_offset < 5) begin
           // postload (mirror of last 5 cols, reverse read direction)
           // write_en <= 1;
+          sr_center_shift <= 0;
           col_read_idx <= (ncols-1) - postload_offset;
           postload_offset <= postload_offset + 1;
         end
         else if (row_read_idx < nrows) begin
           // reset and start next row
           // write_en <= 1; // Still need to write the last col (VERIFY THIS)
+          sr_center_shift <= 1;
           row_read_idx <= row_read_idx + 1;
           col_read_idx <= 0;
           cols_read <= 0;
@@ -134,6 +130,7 @@ module conv_row_controller
       end
       else begin
         // middle columns
+        sr_center_shift <= 0;
         col_write_idx <= col_write_idx + 1;
         col_read_idx <= col_read_idx + 1;
         cols_read <= cols_read + 1;

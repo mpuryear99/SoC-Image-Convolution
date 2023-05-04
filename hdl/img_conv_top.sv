@@ -49,6 +49,7 @@ module img_conv_top
   logic io_rx_en,   io_tx_en;
   logic io_rx_rstn, io_tx_rstn;
   logic io_rx_busy, io_tx_busy;
+  logic [7:0] io_tx_dout;
 
   io_rx_controller io_rxc
   (
@@ -58,7 +59,7 @@ module img_conv_top
     .nrows(nrows),
     .ncols(ncols),
     .din(din),
-    .busy(io_tx_busy),
+    .busy(io_rx_busy),
     .sram_ctrl(io_rx_sram_ctrl)
   );
 
@@ -69,7 +70,7 @@ module img_conv_top
     .en(io_tx_en),
     .nrows(nrows),
     .ncols(ncols),
-    .dout(dout),
+    .dout(io_tx_dout),
     .busy(io_tx_busy),
     .sram_ctrl(io_tx_sram_ctrl),
     .sram_dout_in(sram_img_dout)
@@ -91,7 +92,7 @@ module img_conv_top
     .nrows(conv_swap_sram ? ncols : nrows),
     .ncols(conv_swap_sram ? nrows : ncols),
     .sigma(sigma),
-    .transpose_to_buf(1'b1),
+    .transpose_to_buf(1'b0),
     .busy(conv_busy),
     .sram_img_dout_in(conv_swap_sram ? sram_buf_dout : sram_img_dout),
     .sram_img_ctrl(conv_sram_img_ctrl),
@@ -128,10 +129,27 @@ module img_conv_top
   //  This is not set by ff to get sychronized insight into controller functionality
   always_comb begin
     case (currOp)
-      OP_IMG_RX : busy = io_rx_en;
-      OP_IMG_TX : busy = io_tx_en;
-      OP_CONV   : busy = 1'b0;
-      default   : busy = 0'b0;
+      OP_IMG_RX : busy = io_rx_busy;
+      OP_IMG_TX : busy = io_tx_busy;
+      OP_CONV   : busy = 1'b1;
+      default   : busy = 1'b0;
+    endcase
+  end
+
+
+  // dout multiplexing
+  opcode_t dout_op_select;
+  always_latch begin
+    case (dout_op_select)
+      OP_GET_NROWS : dout = nrows;
+      OP_GET_NCOLS : dout = ncols;
+      OP_GET_SIGMA : dout = sigma;
+      // OP_SET_NROWS : dout = nrows;
+      // OP_SET_NCOLS : dout = ncols;
+      // OP_SET_SIGMA : dout = sigma;
+      OP_IMG_TX    : dout = io_tx_dout;
+      OP_CONV      : dout = 8'h01;
+      OP_NOP       : dout = '0;
     endcase
   end
 
@@ -143,10 +161,10 @@ module img_conv_top
     if (!rstn) begin
       currOp <= OP_NOP;
       conv_op_starting = 0'b0;
-      //busy  <= 1'b0;
       nrows <= 8'd8;
       ncols <= 8'd8;
       sigma <= 3'b0;
+      dout_op_select <= OP_NOP;
 
       io_rx_en   <= 1'b0;
       io_tx_en   <= 1'b0;
@@ -161,12 +179,12 @@ module img_conv_top
       if ((currOp == OP_NOP) && en) begin
         // start new op
         case (op)
-          OP_GET_NROWS:  dout  <= nrows < 1 ? 1 : nrows;
-          OP_GET_NCOLS:  dout  <= ncols < 1 ? 1 : ncols;
-          OP_GET_SIGMA:  dout  <= sigma;   // may need to zero pad
-          OP_SET_NROWS:  nrows <= din;
-          OP_SET_NCOLS:  ncols <= din;
-          OP_SET_SIGMA:  sigma <= din[2:0];
+          OP_GET_NROWS:  dout_op_select <= OP_GET_NROWS;
+          OP_GET_NCOLS:  dout_op_select <= OP_GET_NCOLS;
+          OP_GET_SIGMA:  dout_op_select <= OP_GET_SIGMA;
+          OP_SET_NROWS:  begin nrows <= (din) ? din : 1;  dout_op_select <= OP_GET_NROWS; end
+          OP_SET_NCOLS:  begin ncols <= (din) ? din : 1;  dout_op_select <= OP_GET_NCOLS; end
+          OP_SET_SIGMA:  begin sigma <= din[2:0];         dout_op_select <= OP_GET_SIGMA; end
 
           OP_IMG_RX: begin
             currOp <= OP_IMG_RX;
@@ -175,12 +193,14 @@ module img_conv_top
           OP_IMG_TX: begin
             currOp <= OP_IMG_TX;
             io_tx_en <= '1;
+            dout_op_select <= OP_IMG_TX;
           end
           OP_CONV: begin
             currOp <= OP_CONV;
             conv_rstn <= '1;
             conv_swap_sram <= '0;
             conv_op_starting <= 1;
+            dout_op_select <= OP_NOP;
           end
           default:  currOp <= OP_NOP;  // do nothing
         endcase
@@ -216,6 +236,7 @@ module img_conv_top
           if (!conv_rstn) begin
             conv_rstn <= '1;
             conv_op_starting <= '1;
+            dout_op_select <= OP_CONV;
           end
           else if (!conv_busy) begin
             // Done
