@@ -160,7 +160,7 @@ module img_conv_top
   always_ff @(posedge clk, negedge rstn) begin
     if (!rstn) begin
       currOp <= OP_NOP;
-      conv_op_starting = 0'b0;
+      conv_op_starting <= 1'b0;
       nrows <= 8'd8;
       ncols <= 8'd8;
       sigma <= 3'b0;
