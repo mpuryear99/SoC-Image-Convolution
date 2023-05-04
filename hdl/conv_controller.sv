@@ -103,7 +103,7 @@ module conv_row_controller
         write_en <= (cols_read + 1) == 6; //0;
       end
       else if (cols_read >= (ncols-1)) begin
-        col_write_idx <= (col_write_idx + 1) % ncols;
+        col_write_idx <= (col_write_idx + 1);  // Remove `% ncols` to fix DRC (don't actually need it)
         write_en <= 1;
 
         if (postload_offset < 5) begin
@@ -131,7 +131,6 @@ module conv_row_controller
       else begin
         // middle columns
         sr_center_shift <= 0;
-        // if (cols_read > 5)
         col_write_idx <= col_write_idx + 1;
         col_read_idx <= col_read_idx + 1;
         cols_read <= cols_read + 1;

@@ -39,7 +39,7 @@ module io_tx_controller
       row_idx <= '0;
       col_idx <= '0;
     end
-    else if ((en || busy) && (row_idx <= nrows)) begin
+    else if ((en || busy) && (row_idx < nrows)) begin
       // output starts one clock cycle after en, so check if busy is set yet
       if (busy) begin
         if (col_idx < (ncols-1)) begin
