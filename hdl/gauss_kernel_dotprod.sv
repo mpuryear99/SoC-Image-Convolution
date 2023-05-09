@@ -1,6 +1,8 @@
 // Calculates the internal product (dot product) of an array
 // and a gaussian kernel of given standard deviation (sigma).
 // Sigma of zero returns the center value of the array.
+//
+// Sigma steps by 0.5
 
 module gauss_kernel_dotprod
 (
